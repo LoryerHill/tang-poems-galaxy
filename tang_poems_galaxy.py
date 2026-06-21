@@ -1,5 +1,5 @@
 """
-唐诗星系 - 粒子星团可视化
+唐诗星云 - 粒子星团可视化
 每一首诗是一个微粒，同体裁的微粒汇聚成星团，带有轻微波动效果
 """
 
@@ -12,7 +12,7 @@ import os
 
 # ==================== 页面配置 ====================
 st.set_page_config(
-    page_title="唐诗星系",
+    page_title="唐诗星云",
     page_icon="🌌",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -178,21 +178,35 @@ st.markdown("""
     }
     /* 侧边栏 multiselect */
     [data-testid="stSidebar"] .stMultiSelect [data-baseweb="tag"] {
-        background: rgba(100, 120, 255, 0.2) !important;
+        background: darkslateblue !important;
         border-radius: 12px !important;
         font-size: 0.78rem;
     }
 
+    /* ---------- Streamlit 默认顶栏/工具栏隐藏 ---------- */
+    [data-testid="stHeader"] {
+        display: none !important;
+    }
+    [data-testid="stToolbar"] {
+        top: 0px !important;
+    }
+    [data-testid="stMain"] {
+        padding-top: 0 !important;
+    }
+    [data-testid="stMainViewContainer"] {
+        padding-top: 0 !important;
+    }
+
     /* ---------- 主内容区 ---------- */
     section.main .block-container {
-        padding: 0.3rem 1.2rem 0.5rem 1.2rem !important;
+        padding: 0 !important;
         max-width: 100% !important;
     }
 
     /* ---------- 标题区域 ---------- */
     .title-container {
         text-align: center;
-        padding: 6px 0 2px 0;
+        padding: 0 0 4px 0;
         position: relative;
     }
     .title-main {
@@ -268,7 +282,7 @@ st.markdown("""
 
 # ==================== 左侧边栏 ====================
 with st.sidebar:
-    st.markdown("## 唐诗星系")
+    st.markdown("## 唐诗星云")
     st.markdown("""
         <div style="font-size:0.78rem;color:rgba(180,180,210,0.6);margin-top:-8px;letter-spacing:0.05em;">
         一诗一星辰 · 一体一星团
@@ -378,7 +392,7 @@ def build_canvas_html(particles_data, genre_colors_map, genre_names_list):
     text-align: center;
   }}
   #detail-panel.visible {{
-    opacity: 1;
+    opacity: 80%;
     transform: translateY(-50%) translateX(0);
   }}
   #detail-panel .dp-deco {{
@@ -403,13 +417,23 @@ def build_canvas_html(particles_data, genre_colors_map, genre_names_list):
   }}
   #detail-panel .dp-content {{
     font-size: 1.05rem; line-height: 2.2;
-    color: #e0d8f0;
-    letter-spacing: 0.04em;
+    color: #e0d8f0; letter-spacing: 0.04em;
+    max-height: 400px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: rgba(255,200,60,0.35) transparent;
+    padding-right: 4px;
+  }}
+  #detail-panel .dp-content::-webkit-scrollbar {{
+    width: 4px;
+  }}
+  #detail-panel .dp-content::-webkit-scrollbar-track {{
+    background: transparent;
+  }}
+  #detail-panel .dp-content::-webkit-scrollbar-thumb {{
+    background: rgba(255,200,60,0.35); border-radius: 2px;
   }}
   #detail-panel .dp-genre {{
     font-size: 0.72rem; color: rgba(200,200,220,0.5);
-    margin-top: 14px;
-    letter-spacing: 0.06em;
+    margin-top: 14px; letter-spacing: 0.06em;
   }}
   #detail-panel .dp-close {{
     position: absolute; top: 10px; right: 14px; cursor: pointer;
@@ -465,12 +489,157 @@ let mouseX = -999, mouseY = -999;
 let hoveredParticle = null;
 let time = 0;
 
+// ==================== 相机状态（平移 + 缩放） ====================
+let cameraX = 0, cameraY = 0;   // 平移偏移（像素）
+let zoom = 1.0;                  // 缩放比例
+const ZOOM_MIN = 0.3;
+const ZOOM_MAX = 5.0;
+const ZOOM_STEP = 0.08;
+
+// 拖拽状态
+let isDragging = false;
+let dragStartX = 0, dragStartY = 0;
+let dragStartCamX = 0, dragStartCamY = 0;
+let hasMoved = false;  // 区分拖拽和点击
+
 function resize() {{
   W = canvas.width = window.innerWidth;
   H = canvas.height = window.innerHeight - 4;
+  // 初始居中：让星团中心对齐画布中心
+  cameraX = (W - 1200 * zoom) / 2;
+  cameraY = (H - 900 * zoom) / 2;
 }}
 window.addEventListener('resize', resize);
 resize();
+
+// ==================== 坐标转换 ====================
+function screenToWorld(sx, sy) {{
+  return {{
+    x: (sx - cameraX) / zoom,
+    y: (sy - cameraY) / zoom
+  }};
+}}
+
+function worldToScreen(wx, wy) {{
+  return {{
+    x: wx * zoom + cameraX,
+    y: wy * zoom + cameraY
+  }};
+}}
+
+// ==================== 拖拽平移 ====================
+canvas.addEventListener('mousedown', (e) => {{
+  isDragging = true;
+  hasMoved = false;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragStartCamX = cameraX;
+  dragStartCamY = cameraY;
+  canvas.style.cursor = 'grabbing';
+}});
+
+window.addEventListener('mousemove', (e) => {{
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+
+  if (isDragging) {{
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) hasMoved = true;
+    cameraX = dragStartCamX + dx;
+    cameraY = dragStartCamY + dy;
+    tooltip.style.display = 'none';
+    return;
+  }}
+
+  // 非拖拽时：hover 检测（用世界坐标）
+  const world = screenToWorld(e.clientX, e.clientY);
+  let closest = null;
+  let minDist = Infinity;
+  for (const p of particles) {{
+    const offsetX = Math.sin(time * p.floatSpeed + p.floatPhase) * p.floatAmp;
+    const offsetY = Math.cos(time * p.floatSpeed * 0.7 + p.floatPhase + 1) * p.floatAmp * 0.8;
+    const px = p.baseX + offsetX;
+    const py = p.baseY + offsetY;
+    const dist = Math.hypot(px - world.x, py - world.y);
+    if (dist < 20 / zoom && dist < minDist) {{
+      minDist = dist;
+      closest = p;
+    }}
+  }}
+
+  if (closest !== hoveredParticle) {{
+    hoveredParticle = closest;
+    canvas.style.cursor = closest ? 'pointer' : 'grab';
+    if (closest) {{
+      tooltip.style.display = 'block';
+      tooltip.querySelector('.tt-title').textContent = closest.title;
+      tooltip.querySelector('.tt-author').textContent = closest.author;
+      tooltip.querySelector('.tt-genre').textContent = '【' + closest.genre + '】';
+    }} else {{
+      tooltip.style.display = 'none';
+    }}
+  }}
+
+  if (tooltip.style.display === 'block') {{
+    tooltip.style.left = (e.clientX + 20) + 'px';
+    tooltip.style.top = (e.clientY - 60) + 'px';
+  }}
+}});
+
+window.addEventListener('mouseup', () => {{
+  isDragging = false;
+  canvas.style.cursor = hoveredParticle ? 'pointer' : 'grab';
+}});
+
+// ==================== 滚轮缩放 ====================
+canvas.addEventListener('wheel', (e) => {{
+  e.preventDefault();
+  const worldBefore = screenToWorld(e.clientX, e.clientY);
+  const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+  const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom + delta));
+  if (newZoom !== zoom) {{
+    zoom = newZoom;
+    // 以鼠标位置为中心缩放
+    cameraX = e.clientX - worldBefore.x * zoom;
+    cameraY = e.clientY - worldBefore.y * zoom;
+  }}
+}}, {{ passive: false }});
+
+// ==================== 点击事件 ====================
+canvas.addEventListener('click', (e) => {{
+  if (hasMoved) return;  // 拖拽后不触发点击
+  if (hoveredParticle) {{
+    showDetail(hoveredParticle);
+  }}
+}});
+
+function showDetail(p) {{
+  document.getElementById('dp-title').textContent = p.title;
+  document.getElementById('dp-author').textContent = '—— ' + p.author;
+  document.getElementById('dp-content').innerHTML = p.content.join('<br>');
+  document.getElementById('dp-genre').textContent = '【' + p.genre + '】';
+  detailPanel.style.display = 'block';
+  requestAnimationFrame(() => {{
+    detailPanel.classList.add('visible');
+  }});
+}}
+
+function closeDetail() {{
+  detailPanel.classList.remove('visible');
+  setTimeout(() => {{ detailPanel.style.display = 'none'; }}, 350);
+}}
+
+canvas.addEventListener('click', (e) => {{
+  if (hasMoved) return;
+  if (!hoveredParticle && detailPanel.style.display === 'block') {{
+    const rect = detailPanel.getBoundingClientRect();
+    const cx = e.clientX, cy = e.clientY;
+    if (!(cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom)) {{
+      closeDetail();
+    }}
+  }}
+}});
 
 // ==================== 背景星尘（含星云） ====================
 const bgStars = [];
@@ -579,10 +748,12 @@ function drawParticles() {{
     const px = p.baseX + offsetX;
     const py = p.baseY + offsetY;
 
-    const dx = px - mouseX;
-    const dy = py - mouseY;
+    // 用世界坐标判断 hover
+    const world = screenToWorld(mouseX, mouseY);
+    const dx = px - world.x;
+    const dy = py - world.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const isHovered = dist < 20;
+    const isHovered = dist < 20 / zoom;
     const drawSize = isHovered ? p.size * 2.2 : p.size;
 
     // 外层光晕
@@ -595,7 +766,7 @@ function drawParticles() {{
     ctx.arc(px, py, drawSize * 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // 十字星光（小粒子才有）
+    // 十字星光
     if (p.size > 3.5) {{
       const sparkAlpha = 0.15 + 0.1 * Math.sin(time * 3 + p.floatPhase);
       ctx.strokeStyle = p.color;
@@ -626,14 +797,14 @@ function drawParticles() {{
     if (isHovered) {{
       const ringAlpha = 0.5 + 0.2 * Math.sin(time * 4);
       ctx.strokeStyle = `rgba(255,255,255,${{ringAlpha}})`;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 / zoom;
       ctx.beginPath();
       ctx.arc(px, py, drawSize * 1.15, 0, Math.PI * 2);
       ctx.stroke();
 
       // 外层脉冲
       ctx.strokeStyle = `rgba(255,255,255,${{ringAlpha * 0.3}})`;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1 / zoom;
       ctx.beginPath();
       ctx.arc(px, py, drawSize * 2.0, 0, Math.PI * 2);
       ctx.stroke();
@@ -641,82 +812,23 @@ function drawParticles() {{
   }}
 }}
 
-// ==================== 鼠标交互 ====================
-canvas.addEventListener('mousemove', (e) => {{
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-
-  let closest = null;
-  let minDist = Infinity;
-  for (const p of particles) {{
-    const offsetX = Math.sin(time * p.floatSpeed + p.floatPhase) * p.floatAmp;
-    const offsetY = Math.cos(time * p.floatSpeed * 0.7 + p.floatPhase + 1) * p.floatAmp * 0.8;
-    const px = p.baseX + offsetX;
-    const py = p.baseY + offsetY;
-    const dist = Math.hypot(px - mouseX, py - mouseY);
-    if (dist < 20 && dist < minDist) {{
-      minDist = dist;
-      closest = p;
-    }}
-  }}
-
-  if (closest !== hoveredParticle) {{
-    hoveredParticle = closest;
-    canvas.style.cursor = closest ? 'pointer' : 'default';
-    if (closest) {{
-      tooltip.style.display = 'block';
-      tooltip.querySelector('.tt-title').textContent = closest.title;
-      tooltip.querySelector('.tt-author').textContent = closest.author;
-      tooltip.querySelector('.tt-genre').textContent = '【' + closest.genre + '】';
-    }} else {{
-      tooltip.style.display = 'none';
-    }}
-  }}
-
-  if (tooltip.style.display === 'block') {{
-    tooltip.style.left = (e.clientX + 20) + 'px';
-    tooltip.style.top = (e.clientY - 60) + 'px';
-  }}
-}});
-
-canvas.addEventListener('click', (e) => {{
-  if (hoveredParticle) {{
-    showDetail(hoveredParticle);
-  }}
-}});
-
-function showDetail(p) {{
-  document.getElementById('dp-title').textContent = p.title;
-  document.getElementById('dp-author').textContent = '—— ' + p.author;
-  document.getElementById('dp-content').innerHTML = p.content.join('<br>');
-  document.getElementById('dp-genre').textContent = '【' + p.genre + '】';
-  detailPanel.style.display = 'block';
-  requestAnimationFrame(() => {{
-    detailPanel.classList.add('visible');
-  }});
-}}
-
-function closeDetail() {{
-  detailPanel.classList.remove('visible');
-  setTimeout(() => {{ detailPanel.style.display = 'none'; }}, 350);
-}}
-
-canvas.addEventListener('click', (e) => {{
-  if (!hoveredParticle && detailPanel.style.display === 'block') {{
-    const rect = detailPanel.getBoundingClientRect();
-    const cx = e.clientX, cy = e.clientY;
-    if (!(cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom)) {{
-      closeDetail();
-    }}
-  }}
-}});
-
 // ==================== 动画循环 ====================
 function animate() {{
   time += 0.016;
   ctx.clearRect(0, 0, W, H);
+
+  // 绘制背景（不受相机影响 — 始终填满画布）
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   drawBackground();
+  ctx.restore();
+
+  // 绘制粒子（受相机变换影响）
+  ctx.save();
+  ctx.setTransform(zoom, 0, 0, zoom, cameraX, cameraY);
   drawParticles();
+  ctx.restore();
+
   requestAnimationFrame(animate);
 }}
 
@@ -730,16 +842,18 @@ animate();
 # 标题
 st.markdown("""
     <div class="title-container">
-        <div class="title-main">唐 诗 星 系</div>
+        <div class="title-main">唐 诗 星 云</div>
         <div class="title-sub">
-            鼠标悬停<span>·</span>查看诗名<span>·</span>点击粒子<span>·</span>阅读全诗
+            拖拽平移<span>·</span>滚轮缩放<span>·</span>悬停查看<span>·</span>点击读诗
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-# 渲染 Canvas
+# 渲染 Canvas（居中容器）
 html_content = build_canvas_html(particles, genre_colors, genre_names)
-components.html(html_content, height=760, scrolling=False)
+st.markdown('<div class="canvas-wrapper">', unsafe_allow_html=True)
+components.html(html_content, height=700, scrolling=False)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # 图例 — 胶囊式
 legend_html = '<div class="legend-wrapper">'
