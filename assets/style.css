@@ -1,0 +1,146 @@
+/* ---------- 全局基础 ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap');
+
+body {
+    margin: 0; padding: 0;
+    background: #020010;
+    color: #e0e0ff;
+}
+
+/* 主背景 — CSS 星云动画 */
+.stApp {
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(72, 49, 212, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(180, 80, 200, 0.08) 0%, transparent 55%),
+        radial-gradient(ellipse at 50% 80%, rgba(30, 120, 200, 0.10) 0%, transparent 55%),
+        radial-gradient(ellipse at center, #05051a 0%, #020010 100%) !important;
+}
+
+/* ---------- 侧边栏 — 深空玻璃质感 ---------- */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg,
+        rgba(15, 12, 50, 0.96) 0%,
+        rgba(10, 8, 35, 0.97) 50%,
+        rgba(5, 4, 20, 0.98) 100%) !important;
+    backdrop-filter: blur(20px) saturate(140%);
+    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+    box-shadow: 4px 0 40px rgba(0, 0, 0, 0.4);
+}
+[data-testid="stSidebar"] * {
+    color: #d0d0f0 !important;
+}
+[data-testid="stSidebar"] h2 {
+    font-size: 1.3rem !important;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, #FFE66D, #FFA94D);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+[data-testid="stSidebar"] h3 {
+    font-size: 0.95rem !important;
+    color: #A0A0D0 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 1rem;
+}
+[data-testid="stSidebar"] hr {
+    border-color: rgba(255,255,255,0.06) !important;
+    margin: 0.8rem 0 !important;
+}
+/* 侧边栏 checkbox 美化 */
+[data-testid="stSidebar"] .stCheckbox label {
+    font-size: 0.88rem;
+    padding: 0.25rem 0;
+    transition: color 0.2s;
+}
+[data-testid="stSidebar"] .stCheckbox label:hover {
+    color: #fff !important;
+}
+/* 侧边栏 multiselect */
+[data-testid="stSidebar"] .stMultiSelect [data-baseweb="tag"] {
+    background: darkslateblue !important;
+    border-radius: 12px !important;
+    font-size: 0.78rem;
+}
+
+/* ---------- 主内容区 ---------- */
+section.main .block-container {
+    padding: 0 !important;
+    max-width: 100% !important;
+}
+
+/* ---------- 标题区域 ---------- */
+.title-container {
+    text-align: center;
+    padding: 0 0 4px 0;
+    position: relative;
+}
+.title-main {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'Noto Serif SC', 'STSong', 'SimSun', serif;
+    letter-spacing: 0.12em;
+    background: linear-gradient(180deg, #FFE066 0%, #F0C060 40%, #E0A040 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(0 0 18px rgba(255, 200, 60, 0.4));
+    animation: titleGlow 3s ease-in-out infinite;
+}
+@keyframes titleGlow {
+    0%, 100% { filter: drop-shadow(0 0 18px rgba(255, 200, 60, 0.4)); }
+    50%      { filter: drop-shadow(0 0 30px rgba(255, 200, 60, 0.7)); }
+}
+.title-sub {
+    color: rgba(180, 180, 220, 0.7);
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+}
+.title-sub span {
+    margin: 0 10px;
+    color: rgba(255,255,255,0.25);
+}
+
+/* ---------- 图例区域 ---------- */
+.legend-wrapper {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    padding: 10px 0 6px 0;
+}
+.legend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    color: #c0c0e0;
+    transition: all 0.25s;
+    cursor: default;
+}
+.legend-chip:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.18);
+    color: #fff;
+}
+.legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px currentColor;
+}
+
+/* ---------- 页脚 ---------- */
+.footer-info {
+    text-align: center;
+    color: rgba(180, 180, 210, 0.45);
+    font-size: 0.72rem;
+    padding: 0 0 4px 0;
+    letter-spacing: 0.04em;
+}
